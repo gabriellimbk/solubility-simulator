@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Solubility Simulator: CaSO₄ ⇌ Ca²⁺ + SO₄²⁻</title>
+<style>
+  :root{
+    --bg:#ffffff;       /* White background */
+    --panel:#f8f9fa;    /* Light gray panels */
+    --ink:#000000;      /* Black text */
+    --muted:#6c757d;    /* Muted gray text */
+    --blue:#0066cc;     /* Ca2+ (aq) - strong blue */
+    --green:#00aa44;    /* SO4^2- (aq) - strong green */
+    --red:#dc3545;      /* alerts + saturated banner - strong red */
+    --cyan:#0088aa;     /* Accent cyan */
+    --border:#333333;   /* Dark borders */
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    background:var(--bg);
+    color:var(--ink); 
+    min-height:100dvh;
+  }
+  header{
+    padding:24px 20px 8px; 
+    text-align:center;
+    background:linear-gradient(to bottom, #e8f4f8, #ffffff);
+    border-bottom: 4px solid var(--border);
+  }
+  header h1{margin:0; font-weight:800; color:var(--ink)}
+  /* Question + equation paragraphs share the same font */
+  header p{margin:.35rem 0 0; color:var(--ink); font-size:1.1rem}
+  /* Make Ksp inline look neutral in the equation paragraph */
+  header p.chem-eqn .ksp{
+    border:none; background:transparent; color:inherit; padding:0; margin-left:.35rem; font-size:inherit; border-radius:0;
+  }
+
+  .wrap{
+    max-width:1100px; 
+    margin:14px auto 40px; 
+    padding:0 16px 24px; 
+    display:grid; 
+    grid-template-columns:420px 1fr; 
+    gap:18px
+  }
+  .card{
+    background:var(--panel); 
+    border:4px solid var(--border); 
+    border-radius:18px; 
+    padding:16px; 
+    box-shadow:0 4px 12px rgba(0,0,0,.1)
+  }
+  .row{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+
+  .slider-block{margin-top:4px}
+  .pill{
+    display:inline-flex; 
+    gap:.45rem; 
+    align-items:center; 
+    border-radius:999px; 
+    padding:.3rem .6rem;
+    font-variant-numeric: tabular-nums; 
+    background:#e6f2ff; 
+    border:2px solid var(--blue);
+    color:var(--blue);
+    font-weight:600;
+  }
+  input[type=range]{width:100%; accent-color:var(--blue);}
+
+  /* beaker */
+  .beaker{
+    --w:210px; 
+    width:var(--w); 
+    height:220px; 
+    border:4px solid var(--blue); 
+    border-bottom-left-radius:12px; 
+    border-bottom-right-radius:12px;
+    position:relative; 
+    margin:8px auto 10px; 
+    background:linear-gradient(to bottom, #e6f7ff, #cceeff); 
+    overflow:hidden;
+  }
+  .beaker::after{
+    content:""; 
+    position:absolute; 
+    left:0; 
+    right:0; 
+    top:26%; 
+    height:2px; 
+    background:var(--blue);
+    opacity:0.4;
+  }
+  .b-labels{
+    position:absolute; 
+    top:6px; 
+    left:8px; 
+    right:8px; 
+    color:var(--ink); 
+    font-size:.86rem; 
+    line-height:1.15; 
+    font-weight:600;
+  }
+  .precip{
+    position:absolute; 
+    bottom:10px; 
+    left:50%; 
+    transform:translateX(-50%); 
+    background:#ffffff;
+    border:2px solid var(--red);
+    border-radius:14px 14px 8px 8px / 18px 18px 10px 10px; 
+    box-shadow:0 0 8px rgba(220,53,69,.3), 0 2px 0 rgba(0,0,0,.1) inset;
+    display:none; 
+    width:10px; 
+    height:6px;
+  }
+  .precip.show{display:block}
+
+  /* tracker */
+  .tracker{
+    margin-top:8px;
+    padding:12px;
+    background:#ffffff;
+    border:2px solid var(--border);
+    border-radius:8px;
+  }
+  .grid{
+    display:grid; 
+    grid-template-columns: 1fr max-content; 
+    row-gap:6px; 
+    column-gap:10px; 
+    align-items:center; 
+    font-variant-numeric: tabular-nums slashed-zero
+  }
+  .val{
+    padding:.2rem .45rem; 
+    border-radius:8px; 
+    background:#ffffff; 
+    border:2px solid var(--muted); 
+    text-align:right; 
+    min-width:8.8ch;
+    font-weight:600;
+  }
+  .ip-alert{
+    color:var(--red); 
+    font-weight:800;
+    border-color:var(--red);
+    background:#ffeeee;
+  }
+  /* green “ok” style specifically for the IP box */
+  .ok-val{
+    background:#d4f4dd;
+    border:2px solid var(--green);
+    color:var(--green);
+    font-weight:700;
+  }
+
+  .sat{justify-self:start; font-weight:700; padding:.2rem .55rem; border-radius:10px}
+  .ok{background:#d4f4dd; border:2px solid var(--green); color:var(--green)}
+  .bad{background:#ffeeee; border:2px solid var(--red); color:var(--red)}
+
+  /* chart + banner */
+  .chart{
+    display:grid; 
+    grid-template-columns: 1fr; 
+    gap:10px; 
+    margin-top:10px; 
+    align-items:end;
+  }
+  .bars-wrap{
+    position:relative;
+    padding:12px;
+    background:#ffffff;
+    border:2px solid var(--border);
+    border-radius:8px;
+  }
+  .banner{
+    position:absolute; 
+    top:6px; 
+    left:12px; 
+    right:12px; 
+    text-align:center; 
+    font-weight:800; 
+    letter-spacing:.2px; 
+    display:block;
+    font-size:20px; 
+    color:var(--ink); 
+    pointer-events:none;
+  }
+  .banner.sat{ color:var(--red); font-size:26px; }
+  .bars{
+    height:260px; 
+    display:grid; 
+    grid-template-columns:repeat(3,1fr); 
+    gap:16px; 
+    align-items:end
+  }
+  .bar{
+    border-radius:12px 12px 0 0; 
+    height:20%; 
+    position:relative; 
+    box-shadow:0 2px 8px rgba(0,0,0,.15);
+    border:2px solid;
+  }
+  .bar small{
+    position:absolute; 
+    top:-22px; 
+    left:50%; 
+    transform:translateX(-50%); 
+    font-variant-numeric: tabular-nums; 
+    color:var(--ink);
+    font-weight:600;
+  }
+  #barCa{ background:rgba(0,102,204,0.2); border-color:var(--blue); }
+  #barSO4{ background:rgba(0,170,68,0.2); border-color:var(--green); }
+  #barSolid{ background:#e5e7eb; border-color:var(--muted); }
+  .bar-title{ text-align:center; margin-top:8px; color:var(--ink); font-weight:600; }
+  .toggle{ margin-top:8px; display:flex; align-items:center; gap:.6rem; font-weight:600; }
+  details summary{ cursor:pointer; font-weight:600; }
+
+  /* Conservation of mass section */
+  .conservation-wrap{
+    margin-top:20px; 
+    padding:16px; 
+    background:#ffffff; 
+    border:3px solid var(--cyan); 
+    border-radius:12px
+  }
+  /* 5-column grid to align headers exactly over values: A + B = Total */
+  .conservation-grid{
+    display:grid;
+    grid-template-columns: 1fr max-content 1fr max-content 1fr;
+    column-gap:12px;
+    row-gap:8px;
+    align-items:center;
+    justify-items:center;
+  }
+  .conservation-grid .head{
+    font-weight:600;
+    color:var(--ink);
+  }
+  .conservation-grid .op{
+    font-weight:700;
+    color:var(--cyan);
+  }
+
+  /* Styled conservation values with filled color + border matching bar colors */
+  .cons-val{
+    display:inline-block; 
+    padding:.3rem .6rem; 
+    border-radius:8px; 
+    font-variant-numeric:tabular-nums; 
+    font-weight:700; 
+    min-width:10ch; 
+    text-align:center
+  }
+  .cons-val-ca{
+    background:rgba(0,102,204,0.2); 
+    border:3px solid var(--blue); 
+    color:var(--blue);
+  }
+  .cons-val-so4{
+    background:rgba(0,170,68,0.2); 
+    border:3px solid var(--green); 
+    color:var(--green);
+  }
+
+  /* Table styling */
+  table{ background:#ffffff; border:2px solid var(--border); border-radius:8px; }
+  thead{ background:#f0f0f0; }
+  th, td{ border-bottom:1px solid #e0e0e0; }
+  tbody tr:hover{ background:#f8f8f8; }
+</style>
+</head>
+<body>
+<header>
+  <h1>• Solubility Simulator •</h1>
+  <p>What happens when solid Na₂SO₄ is gradually added to a solution of Ca²⁺ ?</p>
+  <p class="chem-eqn">CaSO₄(s) ⇌ Ca²⁺(aq) + SO₄²⁻(aq) ;      <span class="ksp">K<sub>sp</sub> = 5 × 10⁻⁵</span></p>
+</header>
+
+<div class="wrap">
+  <!-- LEFT -->
+  <section class="card">
+    <h3 style="margin:6px 0 6px">Add Na₂SO₄(s)</h3>
+    <div class="slider-block">
+      <div class="pill"><b id="nAdded">0.000</b> mol</div>
+      <input id="stepSlider" type="range" min="0" max="20" step="1" value="0" />
+    </div>
+
+    <div class="beaker">
+      <div class="b-labels">
+        vol = 1&nbsp;dm³<br/>
+        initial n Ca²⁺ = 0.010 mol
+      </div>
+      <div id="precip" class="precip" title="CaSO₄(s)"></div>
+    </div>
+
+    <div class="tracker">
+      <div class="grid">
+        <div><b>n Ca²⁺(aq)</b></div><div class="val" id="nCa">0.01000</div>
+        <div><b>n SO₄²⁻(aq)</b></div><div class="val" id="nSulf">0.00000</div>
+        <div><b>ionic product</b></div><div class="val" id="ip">0.00000</div>
+        <div><b>status</b></div><div id="satBadge" class="sat ok">not saturated</div>
+        <div><b>n CaSO₄(s)</b></div><div class="val" id="nSolid">0.00000</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT -->
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <label class="toggle"><input id="showBars" type="checkbox" checked /><span>Show bar graph</span></label>
+    </div>
+
+    <div id="barsWrap" class="bars-wrap">
+      <div class="chart">
+        <div>
+          <div class="bars">
+            <div class="bar" id="barCa"><small id="barCaVal">0.01000</small></div>
+            <div class="bar" id="barSO4"><small id="barSO4Val">0.00000</small></div>
+            <div class="bar" id="barSolid"><small id="barSolidVal">0.00000</small></div>
+          </div>
+          <div class="row" style="justify-content:space-around">
+            <div class="bar-title" style="color:var(--blue)">n Ca²⁺(aq)</div>
+            <div class="bar-title" style="color:var(--green)">n SO₄²⁻(aq)</div>
+            <div class="bar-title" style="color:var(--muted)">n CaSO₄(s)</div>
+          </div>
+        </div>
+      </div>
+      <div id="banner" class="banner">unsaturated solution, IP &lt; Ksp</div>
+    </div>
+
+    <!-- Conservation of Mass Section -->
+    <div style="margin-top:16px">
+      <label class="toggle">
+        <input id="showConservation" type="checkbox" checked />
+        <span>Show conservation of mass</span>
+      </label>
+    </div>
+
+    <div id="conservationWrap" class="conservation-wrap">
+      <h4 style="margin:0 0 12px; color:var(--cyan)">Conservation of Mass</h4>
+
+      <!-- Ca²⁺ block: labels perfectly aligned over values -->
+      <div class="conservation-grid" style="margin-bottom:12px">
+        <div class="head">n Ca²⁺(aq)</div>
+        <div class="op">+</div>
+        <div class="head">n Ca²⁺ in ppt</div>
+        <div class="op">=</div>
+        <div class="head">n Ca²⁺ total</div>
+
+        <span class="cons-val cons-val-ca" id="consCaAq">0.01000 mol</span>
+        <div class="op">+</div>
+        <span class="cons-val cons-val-ca" id="consCaS">0.00000 mol</span>
+        <div class="op">=</div>
+        <span class="cons-val cons-val-ca">0.01000 mol</span>
+      </div>
+
+      <!-- SO₄²⁻ block: labels perfectly aligned over values -->
+      <div class="conservation-grid">
+        <div class="head">n SO₄²⁻(aq)</div>
+        <div class="op">+</div>
+        <div class="head">n SO₄²⁻ in ppt</div>
+        <div class="op">=</div>
+        <div class="head">n SO₄²⁻ total</div>
+
+        <span class="cons-val cons-val-so4" id="consSO4Aq">0.00000 mol</span>
+        <div class="op">+</div>
+        <span class="cons-val cons-val-so4" id="consSO4S">0.00000 mol</span>
+        <div class="op">=</div>
+        <span class="cons-val cons-val-so4" id="consSO4Total">0.00000 mol</span>
+      </div>
+    </div>
+
+    <details style="margin-top:16px">
+      <summary>Show reference table</summary>
+      <div style="overflow:auto; margin-top:8px">
+        <table style="width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums">
+          <thead>
+            <tr style="color:var(--ink)">
+              <th style="text-align:left; padding:6px 8px">n SO₄²⁻ added</th>
+              <th style="text-align:left; padding:6px 8px">n Ca²⁺(aq)</th>
+              <th style="text-align:left; padding:6px 8px">n SO₄²⁻(aq)</th>
+              <th style="text-align:left; padding:6px 8px">n CaSO₄(s)</th>
+              <th style="text-align:left; padding:6px 8px">I.P.</th>
+              <th style="text-align:left; padding:6px 8px">Status</th>
+            </tr>
+          </thead>
+          <tbody id="refTable"></tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<script>
+/* DATA */
+const DATA = [
+  { added: 0.000, nCa: 0.01000, nSO4: 0.00000, nSolid: 0.00000, ip: 0.00000, sat: false },
+  { added: 0.001, nCa: 0.01000, nSO4: 0.00100, nSolid: 0.00000, ip: 0.00001, sat: false },
+  { added: 0.002, nCa: 0.01000, nSO4: 0.00200, nSolid: 0.00000, ip: 0.00002, sat: false },
+  { added: 0.003, nCa: 0.01000, nSO4: 0.00300, nSolid: 0.00000, ip: 0.00003, sat: false },
+  { added: 0.004, nCa: 0.01000, nSO4: 0.00400, nSolid: 0.00000, ip: 0.00004, sat: false },
+  { added: 0.005, nCa: 0.01000, nSO4: 0.00500, nSolid: 0.00000, ip: 0.00005, sat: true  },
+  { added: 0.006, nCa: 0.00935, nSO4: 0.00535, nSolid: 0.00065, ip: 0.00005, sat: true  },
+  { added: 0.007, nCa: 0.00873, nSO4: 0.00573, nSolid: 0.00127, ip: 0.00005, sat: true  },
+  { added: 0.008, nCa: 0.00814, nSO4: 0.00614, nSolid: 0.00186, ip: 0.00005, sat: true  },
+  { added: 0.009, nCa: 0.00759, nSO4: 0.00659, nSolid: 0.00241, ip: 0.00005, sat: true  },
+  { added: 0.010, nCa: 0.00707, nSO4: 0.00707, nSolid: 0.00293, ip: 0.00005, sat: true  },
+  { added: 0.011, nCa: 0.00659, nSO4: 0.00759, nSolid: 0.00341, ip: 0.00005, sat: true  },
+  { added: 0.012, nCa: 0.00614, nSO4: 0.00814, nSolid: 0.00386, ip: 0.00005, sat: true  },
+  { added: 0.013, nCa: 0.00573, nSO4: 0.00873, nSolid: 0.00427, ip: 0.00005, sat: true  },
+  { added: 0.014, nCa: 0.00535, nSO4: 0.00935, nSolid: 0.00465, ip: 0.00005, sat: true  },
+  { added: 0.015, nCa: 0.00500, nSO4: 0.01000, nSolid: 0.00500, ip: 0.00005, sat: true  },
+  { added: 0.016, nCa: 0.00468, nSO4: 0.01068, nSolid: 0.00532, ip: 0.00005, sat: true  },
+  { added: 0.017, nCa: 0.00439, nSO4: 0.01139, nSolid: 0.00561, ip: 0.00005, sat: true  },
+  { added: 0.018, nCa: 0.00412, nSO4: 0.01212, nSolid: 0.00588, ip: 0.00005, sat: true  },
+  { added: 0.019, nCa: 0.00388, nSO4: 0.01288, nSolid: 0.00612, ip: 0.00005, sat: true  },
+  { added: 0.020, nCa: 0.00366, nSO4: 0.01366, nSolid: 0.00634, ip: 0.00005, sat: true  },
+];
+
+/* Elements */
+const stepSlider = document.getElementById('stepSlider');
+const nAdded = document.getElementById('nAdded');
+const nCa = document.getElementById('nCa');
+const nSulf = document.getElementById('nSulf');
+const nSolid = document.getElementById('nSolid');
+const ip = document.getElementById('ip');
+const satBadge = document.getElementById('satBadge');
+const precip = document.getElementById('precip');
+const barCa = document.getElementById('barCa');
+const barSO4 = document.getElementById('barSO4');
+const barSolid = document.getElementById('barSolid');
+const barCaVal = document.getElementById('barCaVal');
+const barSO4Val = document.getElementById('barSO4Val');
+const barSolidVal = document.getElementById('barSolidVal');
+const showBars = document.getElementById('showBars');
+const barsWrap = document.getElementById('barsWrap');
+const banner = document.getElementById('banner');
+const refTable = document.getElementById('refTable');
+
+// New conservation elements
+const showConservation = document.getElementById('showConservation');
+const conservationWrap = document.getElementById('conservationWrap');
+const consCaAq = document.getElementById('consCaAq');
+const consCaS = document.getElementById('consCaS');
+const consSO4Aq = document.getElementById('consSO4Aq');
+const consSO4S = document.getElementById('consSO4S');
+const consSO4Total = document.getElementById('consSO4Total');
+
+/* Axis (global scale) */
+const GLOBAL_MAX = Math.max(...DATA.map(d => Math.max(d.nCa, d.nSO4, d.nSolid)));
+const MAX_SOLID = Math.max(...DATA.map(d => d.nSolid));  // for beaker size
+
+/* Reference table */
+function buildRefTable(){
+  refTable.innerHTML = DATA.map(d => `
+    <tr>
+      <td style="padding:6px 8px">${d.added.toFixed(3)}</td>
+      <td style="padding:6px 8px">${d.nCa.toFixed(5)}</td>
+      <td style="padding:6px 8px">${d.nSO4.toFixed(5)}</td>
+      <td style="padding:6px 8px">${d.nSolid.toFixed(5)}</td>
+      <td style="padding:6px 8px">${d.ip.toFixed(5)}</td>
+      <td style="padding:6px 8px">${d.sat ? "saturated" : "not saturated"}</td>
+    </tr>
+  `).join('');
+}
+
+/* Bars */
+function setBars(v1,v2,v3){
+  const scale = x => Math.max(4, (x/ GLOBAL_MAX)*100);
+  barCa.style.height = scale(v1)+'%';
+  barSO4.style.height = scale(v2)+'%';
+  barSolid.style.height = scale(v3)+'%';
+  barCaVal.textContent = v1.toFixed(5);
+  barSO4Val.textContent = v2.toFixed(5);
+  barSolidVal.textContent = v3.toFixed(5);
+}
+
+/* Update conservation values */
+function updateConservation(d) {
+  consCaAq.textContent = d.nCa.toFixed(5) + ' mol';
+  consCaS.textContent = d.nSolid.toFixed(5) + ' mol';
+  consSO4Aq.textContent = d.nSO4.toFixed(5) + ' mol';
+  consSO4S.textContent = d.nSolid.toFixed(5) + ' mol';
+  consSO4Total.textContent = d.added.toFixed(5) + ' mol';
+}
+
+/* Apply one row to UI */
+function apply(idx){
+  const d = DATA[idx];
+  nAdded.textContent = d.added.toFixed(3);
+
+  nCa.textContent = d.nCa.toFixed(5);
+  nSulf.textContent = d.nSO4.toFixed(5);
+  nSolid.textContent = d.nSolid.toFixed(5);
+  ip.textContent = d.ip.toFixed(5);
+
+  const atOrAboveKsp = (d.ip >= 0.00005 - 1e-10);
+
+  // Style the IP box per thresholds
+  if (d.ip <= 0.00004 + 1e-10) {
+    ip.classList.add('ok-val');
+    ip.classList.remove('ip-alert');
+  } else if (atOrAboveKsp) {
+    ip.classList.add('ip-alert');
+    ip.classList.remove('ok-val');
+  } else {
+    ip.classList.remove('ip-alert');
+    ip.classList.remove('ok-val');
+  }
+
+  // Banner logic
+  if(atOrAboveKsp){
+    banner.textContent = 'IP = Ksp !!!';
+    banner.classList.add('sat');
+  }else{
+    banner.textContent = 'IP < Ksp';
+    banner.classList.add('sat');
+  }
+
+  if(d.sat){ satBadge.textContent = 'saturated'; satBadge.className = 'sat bad'; }
+  else      { satBadge.textContent = 'not saturated'; satBadge.className = 'sat ok'; }
+
+  if(d.added >= 0.006 - 1e-12){
+    const frac = Math.max(0, Math.min(1, d.nSolid / MAX_SOLID));
+    const w = 30 + frac * 110;
+    const h = 8  + frac * 36;
+    precip.style.width = w + 'px';
+    precip.style.height = h + 'px';
+    precip.classList.add('show');
+  }else{
+    precip.classList.remove('show');
+  }
+
+  setBars(d.nCa, d.nSO4, d.nSolid);
+  updateConservation(d);
+}
+
+/* Interactions */
+stepSlider.addEventListener('input', e => apply(+e.target.value));
+showBars.addEventListener('change', e => barsWrap.style.display = e.target.checked ? 'block' : 'none');
+showConservation.addEventListener('change', e => conservationWrap.style.display = e.target.checked ? 'block' : 'none');
+
+/* Init */
+buildRefTable();
+apply(0);
+</script>
+</body>
+</html>
