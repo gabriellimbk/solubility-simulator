@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes" />
 <title>Solubility Simulator: CaSO₄ ⇌ Ca²⁺ + SO₄²⁻</title>
 <style>
   :root{
@@ -33,53 +33,48 @@
   .pill{display:inline-flex; gap:.45rem; align-items:center; border-radius:999px; padding:.3rem .6rem; font-variant-numeric:tabular-nums; background:#e6f2ff; border:2px solid var(--blue); color:var(--blue); font-weight:600}
   input[type=range]{width:100%; accent-color:var(--blue)}
 
-  /* beaker */
+  /* === Beaker (match sister code look & safety) === */
   .beaker{
-    --w:210px; width:var(--w); height:220px; border:4px solid var(--blue);
+    --w:210px; width:var(--w); height:205px; border:4px solid var(--blue);
     border-bottom-left-radius:12px; border-bottom-right-radius:12px;
-    position:relative; margin:8px auto 10px; background:linear-gradient(to bottom,#e6f7ff,#cceeff); overflow:hidden;
+    position:relative; margin:8px auto 10px; background:linear-gradient(to bottom,#e6f7ff,#cceeff);
+    padding:12px 8px 64px; overflow:hidden;
   }
-  .b-labels{position:absolute; top:6px; left:8px; right:8px; font-size:.86rem; line-height:1.15; font-weight:600}
+  .b-labels{font-weight:600; line-height:1.25; text-align:center; font-size:.86rem;}
   .precip{
     position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
     background:#fff; border:2px solid var(--red);
-    border-radius:14px 14px 8px 8px/18px 18px 10px 10px; box-shadow:0 0 8px rgba(220,53,69,.3), 0 2px 0 rgba(0,0,0,.1) inset;
-    display:none; width:10px; height:6px;
+    border-radius:14px 14px 8px 8px/18px 18px 10px 10px;
+    box-shadow:0 0 8px rgba(220,53,69,.25), 0 2px 0 rgba(0,0,0,.06) inset;
+    display:none; width:10px; height:6px; transition:all .25s ease-in-out;
   }
   .precip.show{display:block}
 
-  /* tracker */
+  /* === Tracker (brighter status & IP boxes like sister code) === */
   .tracker{margin-top:8px; padding:12px; background:#fff; border:2px solid var(--border); border-radius:8px}
   .grid{display:grid; grid-template-columns:1fr max-content; row-gap:6px; column-gap:10px; align-items:center; font-variant-numeric:tabular-nums slashed-zero}
   .val{padding:.2rem .45rem; border-radius:8px; background:#fff; border:2px solid var(--muted); text-align:right; min-width:8.8ch; font-weight:600}
-  .ok-val{background:#d4f4dd; border:2px solid var(--green); color:var(--green); font-weight:700}
-  .ip-alert{color:var(--red); font-weight:800; border-color:var(--red); background:#ffeeee}
+
+  /* brighter greens/reds */
+  .ok-val{background:#ccffdb; border:2px solid #00c853; color:#00a944; font-weight:700}
+  .ip-alert{background:#ffe0e6; border:2px solid #ff1744; color:#ff1744; font-weight:800}
+
   .sat{justify-self:start; font-weight:700; padding:.2rem .55rem; border-radius:10px}
-  .ok{background:#d4f4dd; border:2px solid var(--green); color:var(--green)}
-  .bad{background:#ffeeee; border:2px solid var(--red); color:var(--red)}
+  .ok{background:#ccffdb; border:2px solid #00c853; color:#00a944}
+  .bad{background:#ffe0e6; border:2px solid #ff1744; color:#ff1744}
 
   /* chart */
   .chart{display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px; align-items:end}
   .bars-wrap{position:relative; padding:12px; background:#fff; border:2px solid var(--border); border-radius:8px}
+  .ksp-line{ display:flex; justify-content:center; align-items:center; font-weight:800; letter-spacing:.2px; margin-bottom:6px; min-height:1.6em; text-align:center; color:var(--ink); }
+  .ksp-line.red{ color: var(--red); }
 
-  /* Ksp statement line */
-  .ksp-line{
-    display:flex; justify-content:center; align-items:center;
-    font-weight:800; letter-spacing:.2px; margin-bottom:6px;
-    min-height:1.6em; text-align:center; color:var(--ink); /* default: black */
-  }
-  .ksp-line.red{ color: var(--red); } /* " = " case is red */
-
-  /* Bars — match sister code */
   .bars{height:360px; display:grid; grid-template-columns:repeat(3,1fr); gap:20px; align-items:end}
-  .bar{
-    width:60%; justify-self:center; border-radius:12px 12px 0 0; position:relative; box-shadow:0 2px 8px rgba(0,0,0,.15); border:2px solid;
-  }
+  .bar{ width:60%; justify-self:center; border-radius:12px 12px 0 0; position:relative; box-shadow:0 2px 8px rgba(0,0,0,.15); border:2px solid; }
   .bar small{position:absolute; top:-22px; left:50%; transform:translateX(-50%); font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap}
   #barCa{background:rgba(0,102,204,0.2); border-color:var(--blue)}
   #barSO4{background:rgba(0,170,68,0.2); border-color:var(--green)}
   #barSolid{background:#e5e7eb; border-color:var(--muted)}
-
   .bar-title{text-align:center; margin-top:8px; color:var(--ink); font-weight:700; font-size:1.15rem; letter-spacing:.1px}
 
   .toggle{margin-top:8px; display:flex; align-items:center; gap:.6rem; font-weight:600}
@@ -100,7 +95,7 @@
   th,td{border-bottom:1px solid #e0e0e0; padding:6px 8px}
   tbody tr:hover{background:#f8f8f8}
 
-  /* Mobile-friendly tweaks */
+  /* Mobile */
   @media (max-width: 768px){
     .wrap{grid-template-columns:1fr}
     .bars{height:280px}
@@ -157,7 +152,6 @@
     </div>
 
     <div id="barsWrap" class="bars-wrap">
-      <!-- Ksp statement line -->
       <div id="kspLine" class="ksp-line">[Ca²⁺][SO₄²⁻] < 5.0 × 10⁻⁵</div>
 
       <div class="chart">
@@ -176,7 +170,6 @@
       </div>
     </div>
 
-    <!-- Conservation of Mass Section -->
     <div style="margin-top:16px">
       <label class="toggle">
         <input id="showConservation" type="checkbox" checked />
@@ -329,19 +322,15 @@ function updateConservation(d) {
   consSO4Total.textContent = d.added.toFixed(5) + ' mol';
 }
 
-/* Update Ksp statement per added amount
-   - 0.000 ≤ added < 0.004 :  "<"  (BLACK)
-   - added ≥ 0.004          :  "="  (RED) */
+/* Update Ksp statement */
 function updateKspLine(added){
   const EPS = 1e-12;
   kspLine.classList.remove('red');
-
   if (added < 0.004 - EPS) {
     kspLine.textContent = '[Ca²⁺][SO₄²⁻] < 5.0 × 10⁻⁵';
-    // stays default black (no 'red' class)
   } else {
     kspLine.textContent = '[Ca²⁺][SO₄²⁻] = 5.0 × 10⁻⁵';
-    kspLine.classList.add('red'); // "=" case → red
+    kspLine.classList.add('red');
   }
 }
 
@@ -349,13 +338,12 @@ function updateKspLine(added){
 function apply(idx){
   const d = DATA[idx];
   nAdded.textContent = d.added.toFixed(3);
-
   nCa.textContent = d.nCa.toFixed(5);
   nSulf.textContent = d.nSO4.toFixed(5);
   nSolid.textContent = d.nSolid.toFixed(5);
   ip.textContent = d.ip.toFixed(5);
 
-  // IP box styling logic (unchanged)
+  // IP box state (bright colors)
   if (d.ip <= 0.00004 + 1e-10) {
     ip.classList.add('ok-val');
     ip.classList.remove('ip-alert');
@@ -370,11 +358,16 @@ function apply(idx){
   if(d.sat){ satBadge.textContent = 'saturated'; satBadge.className = 'sat bad'; }
   else      { satBadge.textContent = 'not saturated'; satBadge.className = 'sat ok'; }
 
-  // precip size
+  // Precipitate sizing with safety cap so it never collides with top labels
   if(d.added >= 0.006 - 1e-12){
     const frac = Math.max(0, Math.min(1, d.nSolid / MAX_SOLID));
+    const beaker = document.querySelector('.beaker');
+    const beakerH = beaker ? beaker.clientHeight : 205;
+    const safeTopGap = 80; // px reserved for .b-labels
+    const maxPptH = Math.max(30, beakerH - safeTopGap - 20); // headroom + bottom space
+
     const w = 30 + frac * 110;
-    const h = 8  + frac * 36;
+    const h = Math.min(10 + frac * 52, maxPptH);
     precip.style.width = w + 'px';
     precip.style.height = h + 'px';
     precip.classList.add('show');
@@ -393,6 +386,19 @@ showBars.addEventListener('change', e => barsWrap.style.display = e.target.check
 showConservation.addEventListener('change', e => conservationWrap.style.display = e.target.checked ? 'block' : 'none');
 
 /* Init */
+function buildRefTable(){
+  refTable.innerHTML = DATA.map(d => `
+    <tr>
+      <td>${d.added.toFixed(3)}</td>
+      <td>${d.nCa.toFixed(5)}</td>
+      <td>${d.nSO4.toFixed(5)}</td>
+      <td>${d.nSolid.toFixed(5)}</td>
+      <td>${d.ip.toFixed(5)}</td>
+      <td>${d.sat ? 'saturated' : 'not saturated'}</td>
+    </tr>
+  `).join('');
+}
+
 buildRefTable();
 apply(0);
 </script>
