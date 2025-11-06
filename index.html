@@ -89,6 +89,21 @@
   .toggle{margin-top:8px; display:flex; align-items:center; gap:.6rem; font-weight:600}
   details summary{cursor:pointer; font-weight:600}
 
+  /* >>> Conservation (added from working version) <<< */
+  .conservation-wrap{margin-top:20px; padding:16px; background:#fff; border:3px solid var(--cyan); border-radius:12px}
+  .conservation-grid{display:grid; grid-template-columns:1fr max-content 1fr max-content 1fr; column-gap:12px; row-gap:8px; align-items:center; justify-items:center}
+  .conservation-grid .head{font-weight:600}
+  .conservation-grid .op{font-weight:700; color:var(--cyan)}
+  .cons-val{display:inline-block; padding:.3rem .6rem; border-radius:8px; font-variant-numeric:tabular-nums; font-weight:700; min-width:10ch; text-align:center}
+  .cons-val-ca{background:rgba(0,102,204,0.2); border:3px solid var(--blue); color:var(--blue)}
+  .cons-val-so4{background:rgba(0,170,68,0.2); border:3px solid var(--green); color:var(--green)}
+
+  /* Table */
+  table{width:100%; border-collapse:collapse; background:#fff; border:2px solid var(--border); border-radius:8px}
+  thead{background:#f0f0f0}
+  th,td{border-bottom:1px solid #e0e0e0; padding:6px 8px}
+  tbody tr:hover{background:#f8f8f8}
+
   /* Mobile tweaks (keep two columns! do NOT override .wrap grid here) */
   @media (max-width: 768px){
     .bars{height:280px}
@@ -174,6 +189,7 @@
           </label>
         </div>
 
+        <!-- Conservation of Mass (working structure) -->
         <div id="conservationWrap" class="conservation-wrap">
           <h4 style="margin:0 0 12px; color:var(--cyan)">Conservation of Mass</h4>
 
