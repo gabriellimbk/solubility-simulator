@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<!-- Match the first page: allow pinch-zoom and default to fully zoomed-out -->
+<!-- Mobile: allow pinch-zoom; open fully zoomed out (fit-to-width) -->
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover, shrink-to-fit=no" />
 <title>Solubility Simulator: CaSO₄ ⇌ Ca²⁺ + SO₄²⁻</title>
 <style>
   :root{
     --bg:#ffffff; --panel:#f8f9fa; --ink:#000000; --muted:#6c757d;
     --blue:#0066cc; --green:#00aa44; --red:#dc3545; --cyan:#0088aa; --border:#333333;
-    --design-width:1100px;
+    --design-width:1100px; /* desktop canvas width to preserve on mobile */
   }
   html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   *{box-sizing:border-box}
@@ -18,11 +18,11 @@
     background:var(--bg); color:var(--ink); min-height:100dvh;
   }
 
-  /* SCALE-TO-FIT WRAPPER (same behavior as the first page) */
+  /* SCALE-TO-FIT WRAPPER (keeps desktop layout on mobile) */
   #scaleContainer{ width:100%; touch-action:pan-y; }
   #scaler{ width:var(--design-width); transform-origin:top left; }
   @media (min-width:1100px){
-    /* Desktop: no scaling, original layout */
+    /* Desktop: no scaling */
     #scaler{ transform:none; width:100%; transform-origin:top center; }
   }
 
@@ -37,7 +37,7 @@
 
   .wrap{
     max-width:var(--design-width); margin:14px auto 40px; padding:0 16px 24px;
-    display:grid; grid-template-columns:420px 1fr; gap:18px;
+    display:grid; grid-template-columns:420px 1fr; gap:18px; /* always two columns */
   }
   .card{background:var(--panel); border:4px solid var(--border); border-radius:18px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,.1)}
   .row{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
@@ -45,7 +45,7 @@
   .pill{display:inline-flex; gap:.45rem; align-items:center; border-radius:999px; padding:.3rem .6rem; font-variant-numeric:tabular-nums; background:#e6f2ff; border:2px solid var(--blue); color:var(--blue); font-weight:600}
   input[type=range]{width:100%; accent-color:var(--blue)}
 
-  /* === Beaker (same look & safety) === */
+  /* Beaker */
   .beaker{
     --w:210px; width:var(--w); height:205px; border:4px solid var(--blue);
     border-bottom-left-radius:12px; border-bottom-right-radius:12px;
@@ -62,19 +62,17 @@
   }
   .precip.show{display:block}
 
-  /* === Tracker (brighter status & IP boxes) === */
+  /* Tracker (bright styles) */
   .tracker{margin-top:8px; padding:12px; background:#fff; border:2px solid var(--border); border-radius:8px}
   .grid{display:grid; grid-template-columns:1fr max-content; row-gap:6px; column-gap:10px; align-items:center; font-variant-numeric:tabular-nums slashed-zero}
   .val{padding:.2rem .45rem; border-radius:8px; background:#fff; border:2px solid var(--muted); text-align:right; min-width:8.8ch; font-weight:600}
-
   .ok-val{background:#ccffdb; border:2px solid #00c853; color:#00a944; font-weight:700}
   .ip-alert{background:#ffe0e6; border:2px solid #ff1744; color:#ff1744; font-weight:800}
-
   .sat{justify-self:start; font-weight:700; padding:.2rem .55rem; border-radius:10px}
   .ok{background:#ccffdb; border:2px solid #00c853; color:#00a944}
   .bad{background:#ffe0e6; border:2px solid #ff1744; color:#ff1744}
 
-  /* chart */
+  /* Chart */
   .chart{display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px; align-items:end}
   .bars-wrap{position:relative; padding:12px; background:#fff; border:2px solid var(--border); border-radius:8px}
   .ksp-line{ display:flex; justify-content:center; align-items:center; font-weight:800; letter-spacing:.2px; margin-bottom:6px; min-height:1.6em; text-align:center; color:var(--ink); }
@@ -91,24 +89,8 @@
   .toggle{margin-top:8px; display:flex; align-items:center; gap:.6rem; font-weight:600}
   details summary{cursor:pointer; font-weight:600}
 
-  /* Conservation */
-  .conservation-wrap{margin-top:20px; padding:16px; background:#fff; border:3px solid var(--cyan); border-radius:12px}
-  .conservation-grid{display:grid; grid-template-columns:1fr max-content 1fr max-content 1fr; column-gap:12px; row-gap:8px; align-items:center; justify-items:center}
-  .conservation-grid .head{font-weight:600}
-  .conservation-grid .op{font-weight:700; color:var(--cyan)}
-  .cons-val{display:inline-block; padding:.3rem .6rem; border-radius:8px; font-variant-numeric:tabular-nums; font-weight:700; min-width:10ch; text-align:center}
-  .cons-val-ca{background:rgba(0,102,204,0.2); border:3px solid var(--blue); color:var(--blue)}
-  .cons-val-so4{background:rgba(0,170,68,0.2); border:3px solid var(--green); color:var(--green)}
-
-  /* Table */
-  table{width:100%; border-collapse:collapse; background:#fff; border:2px solid var(--border); border-radius:8px}
-  thead{background:#f0f0f0}
-  th,td{border-bottom:1px solid #e0e0e0; padding:6px 8px}
-  tbody tr:hover{background:#f8f8f8}
-
-  /* Mobile tweaks */
+  /* Mobile tweaks (keep two columns! do NOT override .wrap grid here) */
   @media (max-width: 768px){
-    .wrap{grid-template-columns:1fr}
     .bars{height:280px}
     .bar small{top:-18px; font-size:.9rem}
     .bar-title{font-size:1.05rem}
@@ -248,7 +230,7 @@
 </div>
 
 <script>
-/* ---- Scale-to-fit for mobile; desktop renders unscaled ---- */
+/* Scale-to-fit (keeps two columns on mobile, default fully zoomed out) */
 (function(){
   const DESIGN_WIDTH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--design-width')) || 1100;
   const scaleContainer = document.getElementById('scaleContainer');
@@ -257,13 +239,11 @@
   function applyPageScale(){
     const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
     if (vw >= DESIGN_WIDTH){
-      // Desktop: no scaling; natural height
       scaler.style.transform = 'none';
       scaler.style.width = '100%';
       scaleContainer.style.height = 'auto';
       return;
     }
-    // Mobile: left-anchored uniform scale
     const scale = Math.min(1, vw / DESIGN_WIDTH);
     scaler.style.width = DESIGN_WIDTH + 'px';
     scaler.style.transform = 'scale(' + scale + ')';
@@ -276,14 +256,13 @@
   document.addEventListener('DOMContentLoaded', applyPageScale);
   window.addEventListener('load', applyPageScale);
 
-  // When toggles change content height, recalc reserved height
+  // Recalc when toggles change content height
   function recalc(){ window.dispatchEvent(new Event('resize')); }
   document.addEventListener('change', e=>{
     if (e.target && (e.target.id === 'showBars' || e.target.id === 'showConservation')) recalc();
   });
 })();
 
-/* ---- App logic ---- */
 /* DATA */
 const DATA = [
   { added: 0.000, nCa: 0.01000, nSO4: 0.00000, nSolid: 0.00000, ip: 0.00000, sat: false },
@@ -437,8 +416,7 @@ function apply(idx){
 stepSlider.addEventListener('input', e => apply(+e.target.value));
 showBars.addEventListener('change', e => {
   barsWrap.style.display = e.target.checked ? 'block' : 'none';
-  // Recompute reserved height for the scaler
-  window.dispatchEvent(new Event('resize'));
+  window.dispatchEvent(new Event('resize')); // keep scaled height correct
 });
 showConservation.addEventListener('change', e => {
   conservationWrap.style.display = e.target.checked ? 'block' : 'none';
@@ -446,19 +424,6 @@ showConservation.addEventListener('change', e => {
 });
 
 /* Init */
-function buildRefTable(){
-  refTable.innerHTML = DATA.map(d => `
-    <tr>
-      <td>${d.added.toFixed(3)}</td>
-      <td>${d.nCa.toFixed(5)}</td>
-      <td>${d.nSO4.toFixed(5)}</td>
-      <td>${d.nSolid.toFixed(5)}</td>
-      <td>${d.ip.toFixed(5)}</td>
-      <td>${d.sat ? 'saturated' : 'not saturated'}</td>
-    </tr>
-  `).join('');
-}
-
 buildRefTable();
 apply(0);
 </script>
