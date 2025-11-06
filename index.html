@@ -2,18 +2,30 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes" />
+<!-- Match the first page: allow pinch-zoom and default to fully zoomed-out -->
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover, shrink-to-fit=no" />
 <title>Solubility Simulator: CaSO₄ ⇌ Ca²⁺ + SO₄²⁻</title>
 <style>
   :root{
     --bg:#ffffff; --panel:#f8f9fa; --ink:#000000; --muted:#6c757d;
     --blue:#0066cc; --green:#00aa44; --red:#dc3545; --cyan:#0088aa; --border:#333333;
+    --design-width:1100px;
   }
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   *{box-sizing:border-box}
   body{
     margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     background:var(--bg); color:var(--ink); min-height:100dvh;
   }
+
+  /* SCALE-TO-FIT WRAPPER (same behavior as the first page) */
+  #scaleContainer{ width:100%; touch-action:pan-y; }
+  #scaler{ width:var(--design-width); transform-origin:top left; }
+  @media (min-width:1100px){
+    /* Desktop: no scaling, original layout */
+    #scaler{ transform:none; width:100%; transform-origin:top center; }
+  }
+
   header{
     padding:24px 20px 8px; text-align:center;
     background:linear-gradient(to bottom, #e8f4f8, #ffffff);
@@ -24,7 +36,7 @@
   header p.chem-eqn .ksp{border:none; background:transparent; padding:0; margin-left:.35rem}
 
   .wrap{
-    max-width:1100px; margin:14px auto 40px; padding:0 16px 24px;
+    max-width:var(--design-width); margin:14px auto 40px; padding:0 16px 24px;
     display:grid; grid-template-columns:420px 1fr; gap:18px;
   }
   .card{background:var(--panel); border:4px solid var(--border); border-radius:18px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,.1)}
@@ -33,7 +45,7 @@
   .pill{display:inline-flex; gap:.45rem; align-items:center; border-radius:999px; padding:.3rem .6rem; font-variant-numeric:tabular-nums; background:#e6f2ff; border:2px solid var(--blue); color:var(--blue); font-weight:600}
   input[type=range]{width:100%; accent-color:var(--blue)}
 
-  /* === Beaker (match sister code look & safety) === */
+  /* === Beaker (same look & safety) === */
   .beaker{
     --w:210px; width:var(--w); height:205px; border:4px solid var(--blue);
     border-bottom-left-radius:12px; border-bottom-right-radius:12px;
@@ -50,12 +62,11 @@
   }
   .precip.show{display:block}
 
-  /* === Tracker (brighter status & IP boxes like sister code) === */
+  /* === Tracker (brighter status & IP boxes) === */
   .tracker{margin-top:8px; padding:12px; background:#fff; border:2px solid var(--border); border-radius:8px}
   .grid{display:grid; grid-template-columns:1fr max-content; row-gap:6px; column-gap:10px; align-items:center; font-variant-numeric:tabular-nums slashed-zero}
   .val{padding:.2rem .45rem; border-radius:8px; background:#fff; border:2px solid var(--muted); text-align:right; min-width:8.8ch; font-weight:600}
 
-  /* brighter greens/reds */
   .ok-val{background:#ccffdb; border:2px solid #00c853; color:#00a944; font-weight:700}
   .ip-alert{background:#ffe0e6; border:2px solid #ff1744; color:#ff1744; font-weight:800}
 
@@ -95,7 +106,7 @@
   th,td{border-bottom:1px solid #e0e0e0; padding:6px 8px}
   tbody tr:hover{background:#f8f8f8}
 
-  /* Mobile */
+  /* Mobile tweaks */
   @media (max-width: 768px){
     .wrap{grid-template-columns:1fr}
     .bars{height:280px}
@@ -111,126 +122,168 @@
 </style>
 </head>
 <body>
-<header>
-  <h1>• Solubility Simulator •</h1>
-  <p>What happens when solid Na₂SO₄ is gradually added to a solution of Ca²⁺ ?</p>
-  <p class="chem-eqn">Ca²⁺(aq) + SO₄²⁻(aq) ⇌ CaSO₄(s) ; <span class="ksp">K<sub>sp</sub> = 5.0 × 10⁻⁵</span></p>
-</header>
 
-<div class="wrap">
-  <!-- LEFT -->
-  <section class="card">
-    <h3 style="margin:6px 0 6px">Add Na₂SO₄(s)</h3>
-    <div class="slider-block">
-      <div class="pill"><b id="nAdded">0.000</b> mol</div>
-      <input id="stepSlider" type="range" min="0" max="20" step="1" value="0" />
-    </div>
+<!-- SCALE WRAPPER -->
+<div id="scaleContainer">
+  <div id="scaler">
+    <header>
+      <h1>• Solubility Simulator •</h1>
+      <p>What happens when solid Na₂SO₄ is gradually added to a solution of Ca²⁺ ?</p>
+      <p class="chem-eqn">Ca²⁺(aq) + SO₄²⁻(aq) ⇌ CaSO₄(s) ; <span class="ksp">K<sub>sp</sub> = 5.0 × 10⁻⁵</span></p>
+    </header>
 
-    <div class="beaker">
-      <div class="b-labels">
-        vol = 1&nbsp;dm³<br/>
-        initial n Ca²⁺ = 0.010 mol
-      </div>
-      <div id="precip" class="precip" title="CaSO₄(s)"></div>
-    </div>
+    <div class="wrap">
+      <!-- LEFT -->
+      <section class="card">
+        <h3 style="margin:6px 0 6px">Add Na₂SO₄(s)</h3>
+        <div class="slider-block">
+          <div class="pill"><b id="nAdded">0.000</b> mol</div>
+          <input id="stepSlider" type="range" min="0" max="20" step="1" value="0" />
+        </div>
 
-    <div class="tracker">
-      <div class="grid">
-        <div><b>n Ca²⁺(aq)</b></div><div class="val" id="nCa">0.01000</div>
-        <div><b>n SO₄²⁻(aq)</b></div><div class="val" id="nSulf">0.00000</div>
-        <div><b>ionic product: [Ca²⁺][SO₄²⁻]</b></div><div class="val" id="ip">0.00000</div>
-        <div><b>status</b></div><div id="satBadge" class="sat ok">not saturated</div>
-        <div><b>n CaSO₄(s)</b></div><div class="val" id="nSolid">0.00000</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- RIGHT -->
-  <section class="card">
-    <div class="row" style="justify-content:space-between">
-      <label class="toggle"><input id="showBars" type="checkbox" checked /><span>Show bar graph</span></label>
-    </div>
-
-    <div id="barsWrap" class="bars-wrap">
-      <div id="kspLine" class="ksp-line">[Ca²⁺][SO₄²⁻] < 5.0 × 10⁻⁵</div>
-
-      <div class="chart">
-        <div>
-          <div class="bars">
-            <div class="bar" id="barCa"><small id="barCaVal">0.01000 mol</small></div>
-            <div class="bar" id="barSO4"><small id="barSO4Val">0.00000 mol</small></div>
-            <div class="bar" id="barSolid"><small id="barSolidVal">0.00000 mol</small></div>
+        <div class="beaker">
+          <div class="b-labels">
+            vol = 1&nbsp;dm³<br/>
+            initial n Ca²⁺ = 0.010 mol
           </div>
-          <div class="row" style="justify-content:space-around">
-            <div class="bar-title" style="color:var(--blue)">n Ca²⁺(aq)</div>
-            <div class="bar-title" style="color:var(--green)">n SO₄²⁻(aq)</div>
-            <div class="bar-title" style="color:var(--muted)">n CaSO₄(s)</div>
+          <div id="precip" class="precip" title="CaSO₄(s)"></div>
+        </div>
+
+        <div class="tracker">
+          <div class="grid">
+            <div><b>n Ca²⁺(aq)</b></div><div class="val" id="nCa">0.01000</div>
+            <div><b>n SO₄²⁻(aq)</b></div><div class="val" id="nSulf">0.00000</div>
+            <div><b>ionic product: [Ca²⁺][SO₄²⁻]</b></div><div class="val" id="ip">0.00000</div>
+            <div><b>status</b></div><div id="satBadge" class="sat ok">not saturated</div>
+            <div><b>n CaSO₄(s)</b></div><div class="val" id="nSolid">0.00000</div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <!-- RIGHT -->
+      <section class="card">
+        <div class="row" style="justify-content:space-between">
+          <label class="toggle"><input id="showBars" type="checkbox" checked /><span>Show bar graph</span></label>
+        </div>
+
+        <div id="barsWrap" class="bars-wrap">
+          <div id="kspLine" class="ksp-line">[Ca²⁺][SO₄²⁻] < 5.0 × 10⁻⁵</div>
+
+          <div class="chart">
+            <div>
+              <div class="bars">
+                <div class="bar" id="barCa"><small id="barCaVal">0.01000 mol</small></div>
+                <div class="bar" id="barSO4"><small id="barSO4Val">0.00000 mol</small></div>
+                <div class="bar" id="barSolid"><small id="barSolidVal">0.00000 mol</small></div>
+              </div>
+              <div class="row" style="justify-content:space-around">
+                <div class="bar-title" style="color:var(--blue)">n Ca²⁺(aq)</div>
+                <div class="bar-title" style="color:var(--green)">n SO₄²⁻(aq)</div>
+                <div class="bar-title" style="color:var(--muted)">n CaSO₄(s)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <label class="toggle">
+            <input id="showConservation" type="checkbox" checked />
+            <span>Show conservation of mass</span>
+          </label>
+        </div>
+
+        <div id="conservationWrap" class="conservation-wrap">
+          <h4 style="margin:0 0 12px; color:var(--cyan)">Conservation of Mass</h4>
+
+          <div class="conservation-grid" style="margin-bottom:12px">
+            <div class="head">n Ca²⁺(aq)</div>
+            <div class="op">+</div>
+            <div class="head">n Ca²⁺ in ppt</div>
+            <div class="op">=</div>
+            <div class="head">n Ca²⁺ total</div>
+
+            <span class="cons-val cons-val-ca" id="consCaAq">0.01000 mol</span>
+            <div class="op">+</div>
+            <span class="cons-val cons-val-ca" id="consCaS">0.00000 mol</span>
+            <div class="op">=</div>
+            <span class="cons-val cons-val-ca">0.01000 mol</span>
+          </div>
+
+          <div class="conservation-grid">
+            <div class="head">n SO₄²⁻(aq)</div>
+            <div class="op">+</div>
+            <div class="head">n SO₄²⁻ in ppt</div>
+            <div class="op">=</div>
+            <div class="head">n SO₄²⁻ total</div>
+
+            <span class="cons-val cons-val-so4" id="consSO4Aq">0.00000 mol</span>
+            <div class="op">+</div>
+            <span class="cons-val cons-val-so4" id="consSO4S">0.00000 mol</span>
+            <div class="op">=</div>
+            <span class="cons-val cons-val-so4" id="consSO4Total">0.00000 mol</span>
+          </div>
+        </div>
+
+        <details style="margin-top:16px">
+          <summary>Show reference table</summary>
+          <div class="row table-wrap" style="margin-top:8px">
+            <table>
+              <thead>
+                <tr>
+                  <th>n SO₄²⁻ added</th>
+                  <th>n Ca²⁺(aq)</th>
+                  <th>n SO₄²⁻(aq)</th>
+                  <th>n CaSO₄(s)</th>
+                  <th>I.P.</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="refTable"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
     </div>
-
-    <div style="margin-top:16px">
-      <label class="toggle">
-        <input id="showConservation" type="checkbox" checked />
-        <span>Show conservation of mass</span>
-      </label>
-    </div>
-
-    <div id="conservationWrap" class="conservation-wrap">
-      <h4 style="margin:0 0 12px; color:var(--cyan)">Conservation of Mass</h4>
-
-      <div class="conservation-grid" style="margin-bottom:12px">
-        <div class="head">n Ca²⁺(aq)</div>
-        <div class="op">+</div>
-        <div class="head">n Ca²⁺ in ppt</div>
-        <div class="op">=</div>
-        <div class="head">n Ca²⁺ total</div>
-
-        <span class="cons-val cons-val-ca" id="consCaAq">0.01000 mol</span>
-        <div class="op">+</div>
-        <span class="cons-val cons-val-ca" id="consCaS">0.00000 mol</span>
-        <div class="op">=</div>
-        <span class="cons-val cons-val-ca">0.01000 mol</span>
-      </div>
-
-      <div class="conservation-grid">
-        <div class="head">n SO₄²⁻(aq)</div>
-        <div class="op">+</div>
-        <div class="head">n SO₄²⁻ in ppt</div>
-        <div class="op">=</div>
-        <div class="head">n SO₄²⁻ total</div>
-
-        <span class="cons-val cons-val-so4" id="consSO4Aq">0.00000 mol</span>
-        <div class="op">+</div>
-        <span class="cons-val cons-val-so4" id="consSO4S">0.00000 mol</span>
-        <div class="op">=</div>
-        <span class="cons-val cons-val-so4" id="consSO4Total">0.00000 mol</span>
-      </div>
-    </div>
-
-    <details style="margin-top:16px">
-      <summary>Show reference table</summary>
-      <div class="row table-wrap" style="margin-top:8px">
-        <table>
-          <thead>
-            <tr>
-              <th>n SO₄²⁻ added</th>
-              <th>n Ca²⁺(aq)</th>
-              <th>n SO₄²⁻(aq)</th>
-              <th>n CaSO₄(s)</th>
-              <th>I.P.</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="refTable"></tbody>
-        </table>
-      </div>
-    </details>
-  </section>
+  </div>
 </div>
 
 <script>
+/* ---- Scale-to-fit for mobile; desktop renders unscaled ---- */
+(function(){
+  const DESIGN_WIDTH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--design-width')) || 1100;
+  const scaleContainer = document.getElementById('scaleContainer');
+  const scaler = document.getElementById('scaler');
+
+  function applyPageScale(){
+    const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+    if (vw >= DESIGN_WIDTH){
+      // Desktop: no scaling; natural height
+      scaler.style.transform = 'none';
+      scaler.style.width = '100%';
+      scaleContainer.style.height = 'auto';
+      return;
+    }
+    // Mobile: left-anchored uniform scale
+    const scale = Math.min(1, vw / DESIGN_WIDTH);
+    scaler.style.width = DESIGN_WIDTH + 'px';
+    scaler.style.transform = 'scale(' + scale + ')';
+    const naturalHeight = scaler.scrollHeight;
+    scaleContainer.style.height = (naturalHeight * scale) + 'px';
+  }
+
+  window.addEventListener('resize', applyPageScale, { passive:true });
+  window.addEventListener('orientationchange', applyPageScale, { passive:true });
+  document.addEventListener('DOMContentLoaded', applyPageScale);
+  window.addEventListener('load', applyPageScale);
+
+  // When toggles change content height, recalc reserved height
+  function recalc(){ window.dispatchEvent(new Event('resize')); }
+  document.addEventListener('change', e=>{
+    if (e.target && (e.target.id === 'showBars' || e.target.id === 'showConservation')) recalc();
+  });
+})();
+
+/* ---- App logic ---- */
 /* DATA */
 const DATA = [
   { added: 0.000, nCa: 0.01000, nSO4: 0.00000, nSolid: 0.00000, ip: 0.00000, sat: false },
@@ -364,7 +417,7 @@ function apply(idx){
     const beaker = document.querySelector('.beaker');
     const beakerH = beaker ? beaker.clientHeight : 205;
     const safeTopGap = 80; // px reserved for .b-labels
-    const maxPptH = Math.max(30, beakerH - safeTopGap - 20); // headroom + bottom space
+    const maxPptH = Math.max(30, beakerH - safeTopGap - 20); // headroom + bottom
 
     const w = 30 + frac * 110;
     const h = Math.min(10 + frac * 52, maxPptH);
@@ -382,8 +435,15 @@ function apply(idx){
 
 /* Interactions */
 stepSlider.addEventListener('input', e => apply(+e.target.value));
-showBars.addEventListener('change', e => barsWrap.style.display = e.target.checked ? 'block' : 'none');
-showConservation.addEventListener('change', e => conservationWrap.style.display = e.target.checked ? 'block' : 'none');
+showBars.addEventListener('change', e => {
+  barsWrap.style.display = e.target.checked ? 'block' : 'none';
+  // Recompute reserved height for the scaler
+  window.dispatchEvent(new Event('resize'));
+});
+showConservation.addEventListener('change', e => {
+  conservationWrap.style.display = e.target.checked ? 'block' : 'none';
+  window.dispatchEvent(new Event('resize'));
+});
 
 /* Init */
 function buildRefTable(){
